@@ -4,8 +4,6 @@
 
 bool JsonHandler::checkIfRain(nlohmann::json& jsonObj)
 {
-    // time_t curDateAndTime = time(0);
-    // tm* timeStruct = gmtime(&curDateAndTime);
     time_t curDateAndTime = time(0);
     tm* timeStruct = localtime(&curDateAndTime);
 
@@ -16,9 +14,10 @@ bool JsonHandler::checkIfRain(nlohmann::json& jsonObj)
     /* текущая дата в секундах в GMT, но время полночь */
     time_t curDateMidnight = mktime(timeStruct);
 
-    /* mktime учитывает локаль, поэтому для GMT такие рассчеты */
-    time_t startTimeFromSixPM = curDateMidnight + 3600 * 6;
-    time_t endTimeWhenNextDay = curDateMidnight + 3600 * 24;
+    /* +6 часов, т.к. хотим получить 6 утра и еще +3 для московского времени */
+    time_t startTimeFromSixPM = curDateMidnight + 3600 * 9;
+    /* для полуночи +24 и +3 */
+    time_t endTimeWhenNextDay = curDateMidnight + 3600 * 27;
 
     std::cout << "стартовое время " <<  startTimeFromSixPM << "\n";
     std::cout << "Конечное время " <<  endTimeWhenNextDay << "\n";
