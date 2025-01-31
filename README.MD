@@ -6,6 +6,7 @@
 2) Обработка json с извлечением погоды за текущий период
 3) Интерфейс для сохранения/удаления пользователя в бд
 4) Механизм отправки уведомлений всем подписанным пользователяем в определенное время
+5) Деплой
 
 ### Запрос к открытому апи
 
@@ -320,6 +321,80 @@ void Sheduler::run()
 ```
 
 
-### TODO
+### Деплой
 
-Deploy
+Бот будет задеплоен на виртуальную машину (Ubuntu), в качестве сервера используется Yandex Cloud
+
+Зарегистрироваться на сервисе, далее вкладка Виртуальные Машины -> Создать
+
+Настройка любая (можно взять минимальную, будет достаточно)
+
+Во вкладке Доступ выбираем ssh подключение, после чего нужно будет сгенерировать ssh ключ
+
+![1](/img/1.jpg)
+
+Для генерации ssh ключа
+
+```bash
+ssh-keygen -t ed25519
+```
+
+После чего появятся два ключа (это скрытые файлы, для просмотра ls -a)
+
+```bash
+user@astra:~$ ls -a
+.                        build-untitled1-Desktop-Debug  .dbus       .dotnet       .hgrc.save.2  .pki           .selected_editor  tmp                   .vscode               Загрузки
+..                       build-untitled-Desktop-Debug   .designer   .fly          .local        .planshetarm   .sprut            UniversalRadarClient  .Xauthority           Изображения
+.bash_history            .cache                         Desktop     .gitconfig    .mozilla      .profile       .ssh  
+```
+
+Переходим и открываем публичный ключ id_ed25519.pub 
+
+```bash
+user@astra:~/.ssh$ ls
+id_ed25519  id_ed25519.pub  known_hosts
+```
+
+Теперь можем подключаться 
+
+```bash
+ssh логин_при_создании@ip_виртуальной_машины
+```
+
+Теперь необходимо установить все используемые пакеты (можно подсмотреть в CMakeLists.txt)
+
+```bash
+sudo apt install git g++ make binutils cmake libboost-system-dev libssl-dev zlib1g-dev libcurl4-openssl-dev libsqlite3-dev nlohmann-json-dev
+```
+
+Саму либу для тг бота забрать с гита и собрать
+
+```bash
+git clone https://github.com/reo7sp/tgbot-cpp
+cd tgbot-cpp
+cmake .
+make -j4
+sudo make install
+```
+
+После установки всех необходимых пакетов клонируем текущий репозиторий
+
+```bash
+git clone https://github.com/TsengelBair/RainAlertTgBot.git
+
+mkdir build
+cd build
+cmake ..
+make (опционально указать количество ядре -j)
+/.main
+```
+
+Для того, чтобы бот крутился 24/7 без необходимости подключаться по ssh
+
+```bash
+nohup путь_до_исполняемого > output.log 2>&1 &
+```
+
+UPD
+
+Если бот не работает, значит сервер перестал оплачиваться
