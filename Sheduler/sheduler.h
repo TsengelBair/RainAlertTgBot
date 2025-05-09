@@ -1,16 +1,13 @@
-#ifndef SHEDULER_HPP
-#define SHEDULER_HPP
+#ifndef SHEDULER_H
+#define SHEDULER_H
 
 #include <thread>
 #include <tgbot/tgbot.h>
-#include "../Db/dbmanager.hpp"
-#include "../Http/requesthandler.hpp"
-
 
 class Sheduler
 {
 public:
-    Sheduler(TgBot::Bot& bot, DbManager& db);
+    Sheduler(TgBot::Bot& bot);
     ~Sheduler();
 
     void start();
@@ -21,11 +18,10 @@ private:
     void run();
 
 private:
+    TgBot::Bot &bot;
+
     std::thread shedulerThread;
     bool running;
-    
-    TgBot::Bot& bot;
-    DbManager& db;
 };
 
-#endif
+#endif // SHEDULER_H

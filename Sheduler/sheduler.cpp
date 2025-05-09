@@ -1,12 +1,12 @@
-#include "sheduler.hpp"
-#include <chrono>
-#include "../Json/jsonhandler.hpp"
+#include <nlohmann/json.hpp>
 
-const std::string host = "api.openweathermap.org";
-const std::string target = "/data/2.5/forecast?id=498817&appid=ae65875955cd3b617c2b0e19e6982580&units=metric";
+#include "sheduler.h"
+#include "Db/dbhandler.h"
+#include "Request/requesthandler.h"
+#include "Boundary/timeboundarymaker.h"
+#include "Parser/parser.h"
 
-
-Sheduler::Sheduler(TgBot::Bot& bot, DbManager& db) : bot(bot), db(db), running(true)
+Sheduler::Sheduler(TgBot::Bot &bot) : bot(bot), running(true)
 {
 }
 
@@ -17,9 +17,17 @@ Sheduler::~Sheduler()
 
 bool Sheduler::isRain()
 {
-    RequestHandler request(host, target);
-    nlohmann::json responce = request.getWeather();
-    return JsonHandler::checkIfRain(responce);
+    /// запрос и ответ в виде json
+    nlohmann::json jsonResponce = RequestHandler::getWeather();
+    /// диапазон времени (стартовая и конечная граница)
+    TimeBoundaryMaker maker;
+    std::pair<std::time_t, std::time_t> boundaries = maker.getBoundaries();
+
+    /// передаем границы в конструктор, т.к. в методе isRain проверяем по диапазону границ
+    Parser parser(boundaries);
+    bool rain = parser.isRain(jsonResponce);
+
+    return rain;
 }
 
 void Sheduler::run()
@@ -27,26 +35,22 @@ void Sheduler::run()
     while (running) {
         time_t curDateAndTime = time(0);
         tm* timeStruct = localtime(&curDateAndTime);
-        /* это время рассылки, для теста задать любое удобное */
-        if (timeStruct->tm_hour == 9 && timeStruct->tm_min == 55){
-            std::string weatherMsg;
 
+        if (timeStruct->tm_hour == 5) {
             bool rain = isRain();
-            if (rain) weatherMsg = "Ожидается дождь";
-
-            std::cout << "Отправляю пользователям погоду" << std::endl;
-
-            if (!weatherMsg.empty()){
-                auto users = db.getAllUsers();
-                for (const auto& userId : users) {
-                    bot.getApi().sendMessage(userId, weatherMsg);
-                }       
+            if (rain) {
+                auto users = DbHandler::getInstance()->getAllUsers();
+                if (!users.empty()) {
+                    for (const auto& userId : users) {
+                        bot.getApi().sendMessage(userId, "Ожидается дождь");
+                    }
+                    /// чтобы избежать повторной отправки
+                    std::this_thread::sleep_for(std::chrono::minutes(60));
+                }
             }
-            /* чтобы избежать повторной отправки */
-            std::this_thread::sleep_for(std::chrono::minutes(1));
         }
-        /* ждем минуту перед следующей проверкой */
-        std::this_thread::sleep_for(std::chrono::minutes(1));
+        /// проверку диапазона времени осуществляем раз в 50 минут
+        std::this_thread::sleep_for(std::chrono::minutes(50));
     }
 }
 
